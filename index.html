@@ -28,7 +28,7 @@
     margin:0 auto;
   }
 
-  /* هالة ضوء خلف العجلة (Glow) */
+  /* هالة ضوء خلف العجلة */
   #wheelBox::before {
     content: "";
     position: absolute;
@@ -99,7 +99,6 @@ const STORAGE_KEY = 'ichancy_last_spin_' + user_id;
 
 const HARD_LUCK_CENTER_ANGLE = 225;
 const SECTORS = 8;
-const SECTOR_ANGLE = 360 / SECTORS;
 
 const wheel = document.getElementById('wheel');
 const spinBtn = document.getElementById('spinBtn');
