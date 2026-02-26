@@ -1,219 +1,200 @@
 <!doctype html>
 <html lang="ar">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Spin Wheel</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Spin Wheel</title>
 
-<style>
-body{
-  margin:0;
-  height:100vh;
-  font-family:system-ui,Segoe UI,Roboto,Arial;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:#e6eef6;
-  position:relative;
-  overflow:hidden;
+  <style>
+    body{
+      margin:0;
+      height:100vh;
+      font-family:system-ui,Segoe UI,Roboto,Arial;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#0f1724;
+      color:#e6eef6;
+      position:relative;
+    }
 
-  /* خلفية فخمة جاهزة */
-  background:
-    radial-gradient(circle at 50% 30%, rgba(255,215,0,0.15), transparent 40%),
-    radial-gradient(circle at center, #111 0%, #000 70%);
-}
+    body::after {
+      content: "ALSHAHEN ICHANCY";
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      opacity:0.4;
+      letter-spacing:1px;
+    }
 
-body::after {
-  content: "ALSHAHEN ICHANCY";
-  position: absolute;
-  bottom: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 12px;
-  opacity:0.35;
-  letter-spacing:2px;
-}
+    .wrap{
+      width:360px;
+      max-width:92%;
+      text-align:center;
+      padding:20px;
+    }
 
-.wrap{
-  width:360px;
-  max-width:92%;
-  text-align:center;
-  padding:20px;
-}
+    #wheelBox{
+      position:relative;
+      width:320px;
+      height:320px;
+      margin:0 auto;
+    }
 
-#wheelBox{
-  position:relative;
-  width:320px;
-  height:320px;
-  margin:0 auto;
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
+    #wheel{
+      width:100%;
+      height:100%;
+      border-radius:50%;
+      display:block;
+      transform-origin:50% 50%;
+    }
 
-#wheelBox::before{
-  content:"";
-  position:absolute;
-  width:360px;
-  height:360px;
-  border-radius:50%;
-  background: conic-gradient(
-    rgba(255,215,0,0.4),
-    rgba(255,215,0,0.05),
-    rgba(255,215,0,0.4)
-  );
-  animation: rotateGlow 6s linear infinite;
-  filter: blur(25px);
-  z-index:0;
-}
+    #pointer{
+      position:absolute;
+      top:-18px;
+      left:50%;
+      transform:translateX(-50%);
+      width:48px;
+      pointer-events:none;
+      z-index:5;
+    }
 
-@keyframes rotateGlow{
-  from{ transform: rotate(0deg); }
-  to{ transform: rotate(360deg); }
-}
+    #spinBtn{
+      margin-top:16px;
+      padding:12px 18px;
+      background:#06b6d4;
+      border:none;
+      border-radius:10px;
+      color:#042;
+      font-weight:800;
+      cursor:pointer;
+      font-size:16px;
+    }
 
-#wheel{
-  width:100%;
-  height:100%;
-  border-radius:50%;
-  display:block;
-  transform-origin:50% 50%;
-  position:relative;
-  z-index:2;
-  box-shadow:
-    0 0 40px rgba(255,215,0,0.4),
-    0 20px 40px rgba(0,0,0,0.8);
-}
-
-#pointer{
-  position:absolute;
-  top:-18px;
-  left:50%;
-  transform:translateX(-50%);
-  width:48px;
-  pointer-events:none;
-  z-index:5;
-  filter: drop-shadow(0 0 10px gold);
-}
-
-#spinBtn{
-  margin-top:20px;
-  padding:14px 22px;
-  background: linear-gradient(145deg,#ffd700,#b8860b);
-  border:none;
-  border-radius:14px;
-  color:#111;
-  font-weight:900;
-  cursor:pointer;
-  font-size:16px;
-  box-shadow:
-    0 6px 20px rgba(255,215,0,0.5),
-    inset 0 0 8px rgba(255,255,255,0.6);
-  transition: all .2s ease;
-}
-
-#spinBtn:hover{
-  transform: translateY(-2px);
-}
-
-#spinBtn:active{
-  transform: scale(0.96);
-}
-
-#msg{margin-top:14px;font-size:15px;color:#f1f5f9;}
-#countdown{margin-top:8px;color:#9fb6c6;font-size:13px;}
-.disabled{opacity:0.5;pointer-events:none;}
-</style>
+    #msg{margin-top:12px;font-size:15px;color:#cbd5e1}
+    #countdown{margin-top:8px;color:#9fb6c6;font-size:13px}
+    .disabled{opacity:0.6;pointer-events:none}
+  </style>
 </head>
 
 <body>
+  <div class="wrap">
+    <div id="wheelBox">
+      <img id="wheel" src="wheel.png" alt="wheel">
+      <img id="pointer" src="pointer.png" alt="pointer">
+    </div>
 
-<!-- صوت دوران جاهز من الإنترنت -->
-<audio id="spinSound" src="https://www.soundjay.com/misc/sounds/roulette-wheel-01.mp3" preload="auto"></audio>
-
-<div class="wrap">
-  <div id="wheelBox">
-    <!-- العجلة كما هي -->
-    <img id="wheel" src="https://i.ibb.co/1L9j1Yv/wheel.png" alt="wheel">
-    <img id="pointer" src="https://i.ibb.co/2t3vY6J/pointer.png" alt="pointer">
+    <button id="spinBtn">لديك تدويرة مجانية</button>
+    <div id="msg"></div>
+    <div id="countdown"></div>
   </div>
 
-  <button id="spinBtn">لديك تدويرة مجانية</button>
-  <div id="msg"></div>
-  <div id="countdown"></div>
-</div>
-
 <script>
-const spinSound = document.getElementById('spinSound');
+  const tg = window.Telegram?.WebApp || null;
+  const user = tg?.initDataUnsafe?.user || {};
+  const user_id = user.id || 'guest';
+  const STORAGE_KEY = 'ichancy_last_spin_' + user_id;
 
-const HARD_LUCK_CENTER_ANGLE = 225;
-const wheel = document.getElementById('wheel');
-const spinBtn = document.getElementById('spinBtn');
-const msg = document.getElementById('msg');
-const countdown = document.getElementById('countdown');
+  // ✅ مركز HARD LUCK الصحيح حسب الصورة (أسفل العجلة تماماً)
+  const HARD_LUCK_CENTER_ANGLE = 180;
 
-let spinning = false;
-let lastFinalRotation = 0;
+  const wheel = document.getElementById('wheel');
+  const spinBtn = document.getElementById('spinBtn');
+  const msg = document.getElementById('msg');
+  const countdown = document.getElementById('countdown');
 
-function canSpin() {
-  const last = localStorage.getItem('ichancy_last_spin_guest');
-  if (!last) return true;
-  return (Date.now() - Number(last)) >= 24*3600*1000;
-}
+  let spinning = false;
+  let lastFinalRotation = 0;
 
-function setSpinTime() {
-  localStorage.setItem('ichancy_last_spin_guest', String(Date.now()));
+  function canSpin() {
+    const last = localStorage.getItem(STORAGE_KEY);
+    if (!last) return true;
+    return (Date.now() - Number(last)) >= 24*3600*1000;
+  }
+
+  function setSpinTime() {
+    localStorage.setItem(STORAGE_KEY, String(Date.now()));
+    updateCountdown();
+  }
+
+  function updateCountdown() {
+    const last = Number(localStorage.getItem(STORAGE_KEY));
+    if (!last) {
+      countdown.textContent = '';
+      spinBtn.classList.remove('disabled');
+      return;
+    }
+    const remainMs = 24*3600*1000 - (Date.now() - last);
+    if (remainMs <= 0) {
+      countdown.textContent = '';
+      spinBtn.classList.remove('disabled');
+      return;
+    }
+    spinBtn.classList.add('disabled');
+    const s = Math.floor(remainMs/1000);
+    const h = Math.floor(s/3600);
+    const m = Math.floor((s%3600)/60);
+    const sec = s%60;
+    countdown.textContent = `التدويرة التالية خلال ${h}س ${m}د ${sec}ث`;
+  }
+
+  function spinToHardLuck() {
+    if (spinning) return;
+    if (!canSpin()) {
+      msg.textContent = 'انتظر حتى انتهاء العدّاد';
+      return;
+    }
+
+    spinning = true;
+    msg.textContent = 'جاري الدوران...';
+
+    const fullSpins = 6 + Math.floor(Math.random() * 3);
+
+    // نحسب زاوية التوقف بحيث HARD LUCK يصير تحت السهم
+    const targetOffset = (360 - HARD_LUCK_CENTER_ANGLE) % 360;
+    const finalRotation = fullSpins * 360 + targetOffset;
+
+    lastFinalRotation = finalRotation;
+
+    wheel.style.transition = 'transform 4.2s cubic-bezier(.17,.67,.12,1)';
+    requestAnimationFrame(() => {
+      wheel.style.transform = `rotate(${finalRotation}deg)`;
+    });
+
+    wheel.addEventListener('transitionend', onStop, { once: true });
+    setTimeout(() => { if (spinning) onStop(); }, 5200);
+  }
+
+  function onStop() {
+    spinning = false;
+
+    wheel.style.transition = 'none';
+    wheel.style.transform = `rotate(${lastFinalRotation}deg)`;
+
+    msg.textContent = 'حظ أوفر، حاول غداً';
+    setSpinTime();
+
+    try {
+      if (tg && typeof tg.sendData === 'function') {
+        tg.sendData(JSON.stringify({ prize: 'HARD_LUCK', user_id }));
+      }
+    } catch (e) {}
+
+    updateCountdown();
+  }
+
+  spinBtn.addEventListener('click', () => {
+    if (!canSpin()) {
+      msg.textContent = 'الرجاء الانتظار حتى انتهاء العدّاد';
+      return;
+    }
+    spinToHardLuck();
+  });
+
+  setInterval(updateCountdown, 1000);
   updateCountdown();
-}
-
-function updateCountdown() {
-  const last = Number(localStorage.getItem('ichancy_last_spin_guest'));
-  if (!last) { countdown.textContent=''; spinBtn.classList.remove('disabled'); return; }
-  const remainMs = 24*3600*1000 - (Date.now() - last);
-  if (remainMs<=0) { countdown.textContent=''; spinBtn.classList.remove('disabled'); return; }
-  spinBtn.classList.add('disabled');
-  const s=Math.floor(remainMs/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
-  countdown.textContent=`التدويرة التالية خلال ${h}س ${m}د ${sec}ث`;
-}
-
-function spinToHardLuck() {
-  if(spinning) return;
-  if(!canSpin()){ msg.textContent='انتظر حتى انتهاء العدّاد'; return; }
-
-  spinning = true;
-  msg.textContent='جاري الدوران...';
-
-  spinSound.currentTime=0;
-  spinSound.loop=true;
-  spinSound.play().catch(()=>{});
-
-  const fullSpins = 6 + Math.floor(Math.random()*3);
-  const targetOffset = (360 - HARD_LUCK_CENTER_ANGLE)%360;
-  const finalRotation = fullSpins*360 + targetOffset;
-
-  lastFinalRotation = finalRotation;
-
-  wheel.style.transition='transform 4.2s cubic-bezier(.17,.67,.12,1)';
-  wheel.style.transform=`rotate(${finalRotation}deg)`;
-
-  wheel.addEventListener('transitionend', onStop, {once:true});
-  setTimeout(()=>{if(spinning) onStop();},5200);
-}
-
-function onStop() {
-  spinning=false;
-  spinSound.pause(); spinSound.currentTime=0;
-  wheel.style.transition='none';
-  wheel.style.transform=`rotate(${lastFinalRotation}deg)`;
-  msg.textContent='حظ أوفر، حاول غداً';
-  setSpinTime();
-  updateCountdown();
-}
-
-spinBtn.addEventListener('click', spinToHardLuck);
-setInterval(updateCountdown,1000);
-updateCountdown();
 </script>
 
 </body>
