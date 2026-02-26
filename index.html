@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="ar">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Spin Wheel</title>
+<style>
+  :root{--btn:#06b6d4;--text:#e6eef6}
+
+  html,body{
+    height:100%;
+    margin:0;
+    font-family:system-ui,Segoe UI,Roboto,Arial;
+    background: radial-gradient(circle at center, #1b2535 0%, #0f1724 55%, #0a0f18 100%);
+    color:var(--text);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    overflow:hidden;
+  }
+
+  /* تأثير اللمعان المتحرك على النص */
+  @keyframes shine {
+    0% { background-position: -200px; }
+    100% { background-position: 200px; }
+  }
+
+  body::after {
+    content: "ALSHAHEN ICHANCY";
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    z-index: 0;
+    background: linear-gradient(90deg,
+      rgba(255,255,255,0.1),
+      rgba(255,255,255,0.7),
+      rgba(255,255,255,0.1)
+    );
+    background-size: 200px;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shine 3s linear infinite;
+  }
+
+  .wrap{width:360px;max-width:92%;text-align:center;padding:20px;z-index:2}
+
+  #wheelBox{
+    position:relative;
+    width:320px;
+    height:320px;
+    margin:0 auto;
+  }
+
+  #wheelBox::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 380px;
+    height: 380px;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 70%);
+    border-radius: 50%;
+    z-index: 0;
+  }
+
+  #wheel{
+    width:100%;
+    height:100%;
+    border-radius:50%;
+    display:block;
+    transform-origin:50% 50%;
+    will-change:transform;
+    position:relative;
+    z-index:2;
+  }
+
+  #pointer{
+    position:absolute;
+    top:-18px;
+    left:50%;
+    transform:translateX(-50%);
+    width:48px;
+    pointer-events:none;
+    z-index:5;
+  }
+
+  #spinBtn{
+    margin-top:16px;
+    padding:12px 18px;
+    background:var(--btn);
+    border:none;
+    border-radius:10px;
+    color:#042;
+    font-weight:800;
+    cursor:pointer;
+    font-size:16px;
+  }
+
+  #msg{margin-top:12px;font-size:15px;color:#cbd5e1}
+  #countdown{margin-top:8px;color:#9fb6c6;font-size:13px}
+  .disabled{opacity:0.6;pointer-events:none}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div id="wheelBox">
+      <img id="wheel" src="wheel.png" alt="wheel">
+      <img id="pointer" src="pointer.png" alt="pointer">
+    </div>
+    <button id="spinBtn">لديك تدويرة مجانية</button>
+    <div id="msg"></div>
+    <div id="countdown"></div>
+  </div>
+
+<script>
+const tg = window.Telegram?.WebApp || null;
+const user = tg?.initDataUnsafe?.user || {};
+const user_id = user.id || 'guest';
+const STORAGE_KEY = 'ichancy_last_spin_' + user_id;
+
+const HARD_LUCK_CENTER_ANGLE = 225;
+const SECTORS = 8;
+
+const wheel = document.getElementById('wheel');
+const spinBtn = document.getElementById('spinBtn');
+const msg = document.getElementById('msg');
+const countdown = document.getElementById('countdown');
+
+let spinning = false;
+let lastFinalRotation = 0;
+
+function canSpin() {
+  const last = localStorage.getItem(STORAGE_KEY);
+  if (!last) return true;
+  return (Date.now() - Number(last)) >= 24*3600*1000;
+}
+
+function setSpinTime() {
+  localStorage.setItem(STORAGE_KEY, String(Date.now()));
+  updateCountdown();
+}
+
+function updateCountdown() {
+  const last = Number(localStorage.getItem(STORAGE_KEY));
+  if (!last) {
+    countdown.textContent = '';
+    spinBtn.classList.remove('disabled');
+    return;
+  }
+  const remainMs = 24*3600*1000 - (Date.now() - last);
+  if (remainMs <= 0) {
+    countdown.textContent = '';
+    spinBtn.classList.remove('disabled');
+    return;
+  }
+  spinBtn.classList.add('disabled');
+  const s = Math.floor(remainMs/1000);
+  const h = Math.floor(s/3600);
+  const m = Math.floor((s%3600)/60);
+  const sec = s%60;
+  countdown.textContent = `التدويرة التالية خلال ${h}س ${m}د ${sec}ث`;
+}
+
+function spinToHardLuck() {
+  if (spinning) return;
+  if (!canSpin()) {
+    msg.textContent = 'انتظر حتى انتهاء العدّاد';
+    return;
+  }
+
+  spinning = true;
+  msg.textContent = 'جاري الدوران...';
+
+  const fullSpins = 6 + Math.floor(Math.random() * 3);
+  const targetOffset = (360 - HARD_LUCK_CENTER_ANGLE) % 360;
+  const finalRotation = fullSpins * 360 + targetOffset;
+
+  lastFinalRotation = finalRotation;
+
+  wheel.style.transition = 'transform 4.2s cubic-bezier(.17,.67,.12,1)';
+  requestAnimationFrame(() => {
+    wheel.style.transform = `rotate(${finalRotation}deg)`;
+  });
+
+  wheel.addEventListener('transitionend', onStop, { once: true });
+  setTimeout(() => { if (spinning) onStop(); }, 5200);
+}
+
+function onStop() {
+  spinning = false;
+
+  wheel.style.transition = 'none';
+  wheel.style.transform = `rotate(${lastFinalRotation}deg)`;
+
+  msg.textContent = 'حظ أوفر، حاول غداً';
+  setSpinTime();
+
+  try {
+    if (tg && typeof tg.sendData === 'function') {
+      tg.sendData(JSON.stringify({ prize: 'HARD_LUCK', user_id }));
+    }
+  } catch (e) {}
+
+  updateCountdown();
+}
+
+spinBtn.addEventListener('click', () => {
+  if (!canSpin()) {
+    msg.textContent = 'الرجاء الانتظار حتى انتهاء العدّاد';
+    return;
+  }
+  spinToHardLuck();
+});
+
+setInterval(updateCountdown, 1000);
+updateCountdown();
+</script>
+</body>
+</html>     const eased = 1 - Math.pow(1-p,3);
+      const rot = from + (final - from) * eased;
+      currentRotation = rot;
+      drawWheel(rot);
+      if (p < 1) requestAnimationFrame(frame); else resolve();
+    }
+    requestAnimationFrame(frame);
+  });
+}
+</script>
+</body>
+</html>
