@@ -1,162 +1,128 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ar">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Spin Wheel - ichancy</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ichancy wheel</title>
+
 <style>
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#0f1724;color:#fff}
-  #container{width:360px;max-width:92%;text-align:center}
-  canvas{width:100%;height:auto;background:transparent;border-radius:12px}
-  #spinBtn{margin-top:12px;padding:12px 18px;border:none;border-radius:8px;background:#06b6d4;color:#042;cursor:pointer;font-weight:700}
-  #msg{margin-top:10px;font-size:14px;color:#cbd5e1}
-  .cooldown{color:#fca5a5}
+body {
+  background: #0f1724;
+  color: white;
+  font-family: sans-serif;
+  text-align: center;
+  margin: 0;
+  padding-top: 40px;
+}
+
+#wheel-container {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  margin: auto;
+}
+
+#wheel {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  transition: transform 4s cubic-bezier(.17,.67,.12,1);
+}
+
+#pointer {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 45px;
+}
+
+button {
+  margin-top: 20px;
+  padding: 12px 20px;
+  background: #06b6d4;
+  border: none;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#msg {
+  margin-top: 15px;
+  font-size: 16px;
+}
 </style>
 </head>
+
 <body>
-  <div id="container">
-    <canvas id="wheel" width="600" height="600" aria-label="Spin wheel"></canvas>
-    <button id="spinBtn">دور العجلة</button>
-    <div id="msg">جرب حظك! يمكنك الدوران مرة كل 24 ساعة.</div>
-  </div>
+
+<div id="wheel-container">
+  <img id="wheel" src="wheel.png">
+  <img id="pointer" src="pointer.png">
+</div>
+
+<button id="spinBtn">لديك تدويرة مجانية</button>
+<div id="msg"></div>
 
 <script>
-/*
-  هذه النسخة تعمل بدون API: الدوران يتم محلياً داخل المتصفح.
-  بعد انتهاء الدوران تُرسل النتيجة للبوت عبر tg.sendData.
-  تأكد أن البوت لديك يتعامل مع تحديثات web_app_data لالتقاط النتيجة.
-*/
-
 const tg = window.Telegram?.WebApp || null;
 const user = tg?.initDataUnsafe?.user || {};
 const user_id = user.id || null;
 
-const PRIZES = [
-  { id:'CASH10', label:'10% CASH BACK', angle:0 },
-  { id:'PREMIUM', label:'TELEGRAM PREMIUM 1M', angle:45 },
-  { id:'RESPIN', label:'RESPIN', angle:90 },
-  { id:'10000', label:'10,000 ل.س', angle:135 },
-  { id:'20000', label:'20,000 ل.س', angle:180 },
-  { id:'HARD_LUCK', label:'HARD LUCK', angle:225 },
-  { id:'BONUS5', label:'5% BONUS', angle:270 },
-  { id:'10000b', label:'10,000 ل.س', angle:315 }
-];
-
-const canvas = document.getElementById('wheel');
-const ctx = canvas.getContext('2d');
-const center = { x: canvas.width/2, y: canvas.height/2 };
-const radius = canvas.width/2 - 10;
-
-function drawWheel(rotationDeg=0){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  const seg = 360 / PRIZES.length;
-  PRIZES.forEach((p,i)=>{
-    const start = (i*seg + rotationDeg) * Math.PI/180;
-    const end = ((i+1)*seg + rotationDeg) * Math.PI/180;
-    ctx.beginPath();
-    ctx.moveTo(center.x, center.y);
-    ctx.arc(center.x, center.y, radius, start, end);
-    ctx.closePath();
-    ctx.fillStyle = i%2===0 ? '#0ea5a4' : '#06b6d4';
-    ctx.fill();
-    ctx.save();
-    const mid = (start+end)/2;
-    ctx.translate(center.x + Math.cos(mid)*(radius*0.6), center.y + Math.sin(mid)*(radius*0.6));
-    ctx.rotate(mid + Math.PI/2);
-    ctx.fillStyle = '#042';
-    ctx.font = 'bold 18px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(p.label, 0, 0);
-    ctx.restore();
-  });
-  ctx.fillStyle = '#ef4444';
-  ctx.beginPath();
-  ctx.moveTo(center.x, center.y - radius - 6);
-  ctx.lineTo(center.x - 18, center.y - radius + 24);
-  ctx.lineTo(center.x + 18, center.y - radius + 24);
-  ctx.closePath();
-  ctx.fill();
-}
-drawWheel(0);
+// زاوية HARD LUCK من الصورة = 225 درجة
+const HARD_LUCK_ANGLE = 225;
 
 let spinning = false;
-let currentRotation = 0;
 
-// محاكاة cooldown محلي (يُخزن في localStorage)
-function canSpinLocal(userId) {
-  if (!userId) return true;
-  const key = `ichancy_last_spin_${userId}`;
+function canSpin() {
+  const key = "ichancy_last_spin_" + user_id;
   const last = localStorage.getItem(key);
   if (!last) return true;
-  const elapsed = Date.now() - Number(last);
-  return elapsed >= 24*3600*1000;
+  return (Date.now() - Number(last)) >= 24*3600*1000;
 }
-function setSpinTimeLocal(userId) {
-  if (!userId) return;
-  const key = `ichancy_last_spin_${userId}`;
+
+function setSpinTime() {
+  const key = "ichancy_last_spin_" + user_id;
   localStorage.setItem(key, String(Date.now()));
 }
 
-async function requestSpin(){
+document.getElementById("spinBtn").onclick = () => {
   if (spinning) return;
-  if (!canSpinLocal(user_id)) {
-    const last = Number(localStorage.getItem(`ichancy_last_spin_${user_id}`));
+
+  if (!canSpin()) {
+    const key = "ichancy_last_spin_" + user_id;
+    const last = Number(localStorage.getItem(key));
     const remain = Math.ceil((24*3600*1000 - (Date.now()-last))/1000);
-    document.getElementById('msg').innerHTML = `<span class="cooldown">الانتظار ${remain} ثانية حتى الدوران التالي</span>`;
+    document.getElementById("msg").innerHTML = "الرجاء الانتظار " + remain + " ثانية";
     return;
   }
+
   spinning = true;
-  document.getElementById('msg').textContent = 'جاري الدوران...';
-  // اختيار عشوائي موزون محلياً
-  const pick = weightedPickLocal();
-  const jitter = Math.floor(Math.random()*30) - 15;
-  const angle = (pick.angle + jitter + 360) % 360;
-  await animateToAngle(angle);
-  document.getElementById('msg').textContent = 'النتيجة: ' + pick.id;
-  setSpinTimeLocal(user_id);
-  // أرسل النتيجة للبوت (البوت يجب أن يتعامل مع web_app_data)
-  if (tg) {
-    try {
-      tg.sendData(JSON.stringify({ prize: pick.id, user_id }));
-    } catch(e) {
-      // تجاهل أخطاء الإرسال
+  document.getElementById("msg").innerHTML = "جاري الدوران...";
+
+  const wheel = document.getElementById("wheel");
+
+  const extra = 360 * 5; // 5 لفات كاملة
+  const finalAngle = extra + (360 - HARD_LUCK_ANGLE);
+
+  wheel.style.transform = `rotate(${finalAngle}deg)`;
+
+  setTimeout(() => {
+    document.getElementById("msg").innerHTML = "حظ أوفر، حاول غداً";
+    setSpinTime();
+
+    if (tg) {
+      tg.sendData(JSON.stringify({
+        prize: "HARD_LUCK",
+        user_id
+      }));
     }
-  }
-  spinning = false;
-}
 
-function weightedPickLocal() {
-  // أوزان بسيطة؛ عدّل إذا أردت توازن مختلف
-  const weights = [10,5,5,15,10,20,15,20];
-  const total = weights.reduce((s,w)=>s+w,0);
-  let r = Math.random()*total;
-  for (let i=0;i<PRIZES.length;i++){
-    r -= weights[i];
-    if (r <= 0) return PRIZES[i];
-  }
-  return PRIZES[0];
-}
-
-document.getElementById('spinBtn').addEventListener('click', requestSpin);
-
-function animateToAngle(targetAngle){
-  return new Promise(resolve=>{
-    const extraRot = 360*4;
-    const final = extraRot + (360 - targetAngle);
-    const start = performance.now();
-    const duration = 4200;
-    const from = currentRotation % 360;
-    function frame(t){
-      const p = Math.min(1, (t-start)/duration);
-      const eased = 1 - Math.pow(1-p,3);
-      const rot = from + (final - from) * eased;
-      currentRotation = rot;
-      drawWheel(rot);
-      if (p < 1) requestAnimationFrame(frame); else resolve();
-    }
-    requestAnimationFrame(frame);
-  });
-}
+    spinning = false;
+  }, 4200);
+};
 </script>
+
 </body>
 </html>
