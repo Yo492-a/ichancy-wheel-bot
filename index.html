@@ -10,6 +10,7 @@
   .wrap{width:360px;max-width:92%;text-align:center;padding:20px}
   #wheelBox{position:relative;width:320px;height:320px;margin:0 auto}
   #wheel{width:100%;height:100%;border-radius:50%;display:block;transform-origin:50% 50%;will-change:transform}
+  /* السهم ثابت فوق العجلة — عدّل top أو width إذا احتجت ضبط دقيق */
   #pointer{position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:48px;pointer-events:none;z-index:5}
   #spinBtn{margin-top:16px;padding:12px 18px;background:var(--btn);border:none;border-radius:10px;color:#042;font-weight:800;cursor:pointer;font-size:16px}
   #msg{margin-top:12px;font-size:15px;color:#cbd5e1}
@@ -29,11 +30,24 @@
   </div>
 
 <script>
+/*
+  ملاحظة مهمة:
+  - لتضمن أن قطاع HARD_LUCK يتوقف تماماً تحت السهم، اضبط قيمة HARD_LUCK_CENTER_ANGLE
+    لتكون زاوية مركز قطاع HARD_LUCK في صورة wheel.png (بالدرجات، 0 عند الأعلى، تزداد مع عقارب الساعة).
+  - مثال شائع لقطاع في منتصف العجلة: 225 درجة. عدّل القيمة إذا لاحظت ان القطاع لا يصطف تماماً.
+*/
+
 const tg = window.Telegram?.WebApp || null;
 const user = tg?.initDataUnsafe?.user || {};
 const user_id = user.id || 'guest';
 const STORAGE_KEY = 'ichancy_last_spin_' + user_id;
-const HARD_LUCK_ANGLE = 225;
+
+/* زاوية مركز قطاع HARD_LUCK — عدّل هذه القيمة لتطابق صورتك */
+const HARD_LUCK_CENTER_ANGLE = 225;
+
+/* عدد القطاعات في العجلة (هنا 8) */
+const SECTORS = 8;
+const SECTOR_ANGLE = 360 / SECTORS;
 
 const wheel = document.getElementById('wheel');
 const spinBtn = document.getElementById('spinBtn');
@@ -41,6 +55,7 @@ const msg = document.getElementById('msg');
 const countdown = document.getElementById('countdown');
 
 let spinning = false;
+let lastFinalRotation = 0;
 
 function canSpin() {
   const last = localStorage.getItem(STORAGE_KEY);
@@ -74,37 +89,70 @@ function updateCountdown() {
   countdown.textContent = `التدويرة التالية خلال ${h}س ${m}د ${sec}ث`;
 }
 
+/* دالة الدوران: تضمن أن العجلة تتوقف دائماً بحيث يكون مركز قطاع HARD_LUCK تحت السهم */
 function spinToHardLuck() {
   if (spinning) return;
   if (!canSpin()) {
     msg.textContent = 'انتظر حتى انتهاء العدّاد';
     return;
   }
+
   spinning = true;
   msg.textContent = 'جاري الدوران...';
-  const fullSpins = 5 + Math.floor(Math.random()*3);
-  const final = fullSpins*360 + (360 - HARD_LUCK_ANGLE);
+
+  // عدد اللفات الكاملة المرئية (اجعلها كبيرة بما يكفي لتبدو عشوائية)
+  const fullSpins = 6 + Math.floor(Math.random() * 3); // 6-8 لفات
+
+  // نحسب الزاوية النهائية بحيث يقع مركز قطاع HARD_LUCK عند زاوية 0 (أعلى العجلة)
+  // بما أن السهم يشير للأعلى (زاوية 0)، نحتاج تدوير العجلة بحيث تصبح زاوية مركز القطاع عند 0.
+  // لذلك نأخذ (360 - HARD_LUCK_CENTER_ANGLE) كإزاحة.
+  const targetOffset = (360 - HARD_LUCK_CENTER_ANGLE) % 360;
+
+  // نضيف تصحيح بسيط لضمان أن التوقف يكون في منتصف القطاع (في حال HARD_LUCK_CENTER_ANGLE لم تكن دقيقة)
+  // هذا التصحيح يمكن تغييره أو إزالته؛ هنا نتركه 0 لأن HARD_LUCK_CENTER_ANGLE يفترض أنه مركز القطاع.
+  const centerCorrection = 0;
+
+  const finalRotation = fullSpins * 360 + targetOffset + centerCorrection;
+
+  // نحفظ الدوران النهائي لاستخدامه لاحقاً
+  lastFinalRotation = finalRotation;
+
+  // تطبيق انتقال سلس
   wheel.style.transition = 'transform 4.2s cubic-bezier(.17,.67,.12,1)';
-  requestAnimationFrame(()=> {
-    wheel.style.transform = `rotate(${final}deg)`;
+  requestAnimationFrame(() => {
+    wheel.style.transform = `rotate(${finalRotation}deg)`;
   });
+
+  // عند انتهاء الانتقال نثبت الحالة
   wheel.addEventListener('transitionend', onStop, { once: true });
-  setTimeout(()=>{ if (spinning) onStop(); }, 5000);
+
+  // safety fallback
+  setTimeout(() => { if (spinning) onStop(); }, 5200);
 }
 
 function onStop() {
   spinning = false;
+
+  // نثبت الدوران النهائي بدون انتقال حتى لا يتغير عند تكرار الضغط
+  // نحسب زاوية ضمن 0-360 للاحتفاظ بها
+  const normalized = ((lastFinalRotation % 360) + 360) % 360;
   wheel.style.transition = 'none';
+  wheel.style.transform = `rotate(${lastFinalRotation}deg)`;
+
   msg.textContent = 'حظ أوفر، حاول غداً';
   setSpinTime();
+
+  // إرسال النتيجة للبوت (HARD_LUCK)
   try {
     if (tg && typeof tg.sendData === 'function') {
       tg.sendData(JSON.stringify({ prize: 'HARD_LUCK', user_id }));
     }
-  } catch(e){}
+  } catch (e) {}
+
   updateCountdown();
 }
 
+/* زر الدوران */
 spinBtn.addEventListener('click', () => {
   if (!canSpin()) {
     msg.textContent = 'الرجاء الانتظار حتى انتهاء العدّاد';
@@ -113,6 +161,7 @@ spinBtn.addEventListener('click', () => {
   spinToHardLuck();
 });
 
+/* تحديث العدّاد كل ثانية */
 setInterval(updateCountdown, 1000);
 updateCountdown();
 </script>
