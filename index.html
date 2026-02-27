@@ -86,6 +86,10 @@
 </head>
 
 <body>
+
+  <!-- 🔊 صوت الدوران -->
+  <audio id="spinSound" src="spin.mp3" preload="auto"></audio>
+
   <div class="wrap">
     <div id="wheelBox">
       <img id="wheel" src="wheel.png" alt="wheel">
@@ -109,6 +113,8 @@
   const spinBtn = document.getElementById('spinBtn');
   const msg = document.getElementById('msg');
   const countdown = document.getElementById('countdown');
+
+  const spinSound = document.getElementById('spinSound');
 
   let spinning = false;
   let lastFinalRotation = 0;
@@ -155,27 +161,36 @@
     spinning = true;
     msg.textContent = 'جاري الدوران...';
 
-    /* عدد لفات واقعي: 4 إلى 6 */
     const fullSpins = 4 + Math.floor(Math.random() * 3);
-
     const targetOffset = (360 - HARD_LUCK_CENTER_ANGLE) % 360;
     const finalRotation = fullSpins * 360 + targetOffset;
 
     lastFinalRotation = finalRotation;
 
-    /* حركة عجلة حظ حقيقية – 6 ثوانٍ – انطلاقة بطيئة */
-    wheel.style.transition = 'transform 6s cubic-bezier(.12,.25,.15,1)';
+    /* 🎯 مدة الدوران الجديدة: 3 ثواني */
+    wheel.style.transition = 'transform 3s cubic-bezier(.12,.25,.15,1)';
+
+    /* 🔊 تشغيل صوت الدوران */
+    spinSound.currentTime = 0;
+    spinSound.play();
+    spinSound.loop = true;
 
     requestAnimationFrame(() => {
       wheel.style.transform = `rotate(${finalRotation}deg)`;
     });
 
     wheel.addEventListener('transitionend', onStop, { once: true });
-    setTimeout(() => { if (spinning) onStop(); }, 6500);
+
+    /* ⏱️ مهلة أمان */
+    setTimeout(() => { if (spinning) onStop(); }, 3500);
   }
 
   function onStop() {
     spinning = false;
+
+    /* 🔇 إيقاف صوت الدوران */
+    spinSound.pause();
+    spinSound.currentTime = 0;
 
     wheel.style.transition = 'none';
     wheel.style.transform = `rotate(${lastFinalRotation}deg)`;
