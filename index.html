@@ -163,8 +163,8 @@
 
     lastFinalRotation = finalRotation;
 
-    /* حركة عجلة حظ حقيقية – 6 ثوانٍ */
-    wheel.style.transition = 'transform 6s cubic-bezier(.05,.85,.15,1)';
+    /* حركة عجلة حظ حقيقية – 6 ثوانٍ – انطلاقة بطيئة */
+    wheel.style.transition = 'transform 6s cubic-bezier(.12,.25,.15,1)';
 
     requestAnimationFrame(() => {
       wheel.style.transform = `rotate(${finalRotation}deg)`;
