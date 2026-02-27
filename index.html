@@ -14,7 +14,6 @@
       align-items:center;
       justify-content:center;
 
-      /* الخلفية الوحيدة */
       background-image: url("background.png");
       background-size: cover;
       background-position: center;
@@ -41,7 +40,6 @@
       max-width:92%;
       text-align:center;
       padding:20px;
-      /* لا يوجد أي خلفية سوداء */
     }
 
     #wheelBox{
@@ -157,20 +155,23 @@
     spinning = true;
     msg.textContent = 'جاري الدوران...';
 
-    const fullSpins = 6 + Math.floor(Math.random() * 3);
+    /* عدد لفات واقعي: 4 إلى 6 */
+    const fullSpins = 4 + Math.floor(Math.random() * 3);
 
     const targetOffset = (360 - HARD_LUCK_CENTER_ANGLE) % 360;
     const finalRotation = fullSpins * 360 + targetOffset;
 
     lastFinalRotation = finalRotation;
 
-    wheel.style.transition = 'transform 4.2s cubic-bezier(.17,.67,.12,1)';
+    /* حركة عجلة حظ حقيقية – 6 ثوانٍ */
+    wheel.style.transition = 'transform 6s cubic-bezier(.05,.85,.15,1)';
+
     requestAnimationFrame(() => {
       wheel.style.transform = `rotate(${finalRotation}deg)`;
     });
 
     wheel.addEventListener('transitionend', onStop, { once: true });
-    setTimeout(() => { if (spinning) onStop(); }, 5200);
+    setTimeout(() => { if (spinning) onStop(); }, 6500);
   }
 
   function onStop() {
